@@ -14,9 +14,19 @@ const geistMono = Geist_Mono({
 
 export default function Home() {
   return (
-    <div className="w-screen h-screen flex justify-center items-center gap-4">
-      <Link className="bg-white text-black duration-150 py-1 px-2 rounded-md hover:scale-105 active:scale-95" href="/predict">稻穀含水率分析</Link>
-      <Link className="bg-white text-black duration-150 py-1 px-2 rounded-md hover:scale-105 active:scale-95" href="/analyze">稻米葉色分析</Link>
+    <div className="w-screen h-screen flex justify-center items-center gap-6 bg-gray-100">
+      <Link 
+        className="bg-black text-white px-6 py-3 rounded-lg shadow-lg hover:scale-105 active:scale-95 transition-all duration-150 font-medium"
+        href="/predict"
+      >
+        稻穀含水率分析
+      </Link>
+      <Link 
+        className="bg-black text-white px-6 py-3 rounded-lg shadow-lg hover:scale-105 active:scale-95 transition-all duration-150 font-medium"
+        href="/analyze"
+      >
+        稻米葉色分析
+      </Link>
     </div>
   );
 }
