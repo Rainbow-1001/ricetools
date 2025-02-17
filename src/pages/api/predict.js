@@ -18,124 +18,74 @@ export const config = {
 
 const upload = multer();
 
-// 6色葉色版的標準 RGB 值和對應的施肥建議
-const LEAF_COLOR_STANDARDS = [
-  {
-    level: 1,
-    rgb: [238, 238, 187], // 淺黃綠
-    fertilizer: 6.0,
-    description: "葉色極淺，建議立即追施氮肥6.0公斤/分地"
-  },
-  {
-    level: 2,
-    rgb: [205, 225, 151], // 淺綠
-    fertilizer: 5.0,
-    description: "葉色偏淺，建議追施氮肥5.0公斤/分地"
-  },
-  {
-    level: 3,
-    rgb: [182, 212, 126], // 綠
-    fertilizer: 4.0,
-    description: "葉色稍淺，建議追施氮肥4.0公斤/分地"
-  },
-  {
-    level: 4,
-    rgb: [159, 199, 101], // 深綠
-    fertilizer: 3.0,
-    description: "葉色正常，建議追施氮肥3.0公斤/分地"
-  },
-  {
-    level: 5,
-    rgb: [136, 186, 76], // 更深綠
-    fertilizer: 2.0,
-    description: "葉色深綠，建議追施氮肥2.0公斤/分地"
-  },
-  {
-    level: 6,
-    rgb: [113, 173, 51], // 最深綠
-    fertilizer: 1.0,
-    description: "葉色很深，建議追施氮肥1.0公斤/分地"
-  }
-];
-
-// 計算兩個 RGB 值之間的歐氏距離
-function calculateColorDistance(rgb1, rgb2) {
-  return Math.sqrt(
-    Math.pow(rgb1[0] - rgb2[0], 2) +
-    Math.pow(rgb1[1] - rgb2[1], 2) +
-    Math.pow(rgb1[2] - rgb2[2], 2)
-  );
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
+  let predict;
+
+  // 使用 multer 解析 multipart/form-data
   upload.single('image')(req, {}, async (err) => {
     if (err) return res.status(400).json({ error: 'Error parsing form-data' });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
+    // ================================
+    // 圖片色彩分析邏輯開始
+    // ================================
+    let moistureContent = null;
     try {
-      // 使用 sharp 處理圖片，取得上半部分（假設是葉片區域）
+      // 使用 sharp 處理圖片，轉換成原始 RGB 資料
       const image = sharp(req.file.buffer);
-      const metadata = await image.metadata();
-      
-      // 裁切圖片上半部分（假設是葉片區域）
-      const croppedImage = await image
-        .extract({
-          left: 0,
-          top: 0,
-          width: metadata.width,
-          height: Math.floor(metadata.height / 2)
-        })
-        .removeAlpha()
+      const { data, info } = await image
+        .removeAlpha() // 移除 alpha 通道，確保資料為 RGB 三通道
         .raw()
         .toBuffer({ resolveWithObject: true });
-
-      const { data, info } = croppedImage;
+      
       const { width, height, channels } = info;
       const pixelCount = width * height;
+      let totalRed = 0;
+      let totalGreen = 0;
 
-      // 計算平均 RGB 值
-      let totalR = 0, totalG = 0, totalB = 0;
+      // 資料排列順序為 R, G, B, (A)
       for (let i = 0; i < data.length; i += channels) {
-        totalR += data[i];
-        totalG += data[i + 1];
-        totalB += data[i + 2];
+        totalRed += data[i];       // R 通道
+        totalGreen += data[i + 1];   // G 通道
       }
-
-      const avgRGB = [
-        Math.round(totalR / pixelCount),
-        Math.round(totalG / pixelCount),
-        Math.round(totalB / pixelCount)
-      ];
-
-      // 找出最接近的葉色標準
-      let minDistance = Infinity;
-      let closestStandard = null;
-
-      for (const standard of LEAF_COLOR_STANDARDS) {
-        const distance = calculateColorDistance(avgRGB, standard.rgb);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestStandard = standard;
-        }
+      
+      const avgRed = totalRed / pixelCount;
+      const avgGreen = totalGreen / pixelCount;
+      
+      // 避免除以 0，加 1
+      const colorRatio = avgGreen / (avgRed + 1);
+      
+      // 根據簡單公式計算含水率（公式可根據需求調整）
+      moistureContent = 31 - (colorRatio - 0.8) * 20;
+      moistureContent = Math.max(22, Math.min(31, moistureContent));
+      moistureContent = Number(moistureContent.toFixed(2));
+      if(moistureContent < 22) {
+        predict = `22.0%`;
+      } else if(moistureContent > 31) {
+        predict = `31.0%`;
+      } else {
+        predict = `${moistureContent}%`;
       }
+    } catch (error) {
+      console.error('Color analysis error:', error);
+      // 如果分析失敗，可以選擇中斷或繼續上傳
+      // 這裡我們繼續，但返回 null 表示分析失敗
+    }
+    // ================================
+    // 圖片色彩分析邏輯結束
+    // ================================
 
-      // 建立分析結果
-      const analysisResult = {
-        colorLevel: closestStandard.level,
-        fertilizer: closestStandard.fertilizer,
-        description: closestStandard.description,
-        avgRGB: avgRGB
-      };
+    // 建立一個 stream 以便上傳至 S3
+    const fileStream = stream.Readable.from(req.file.buffer);
 
-      // 上傳圖片到 S3
-      const fileStream = stream.Readable.from(req.file.buffer);
+    try {
       const uploadParams = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
-        Key: `leaf-analysis/${Date.now()}_${req.file.originalname}`,
+        Key: `uploads/${Date.now()}_${req.file.originalname}`,
         Body: fileStream,
         ContentType: req.file.mimetype,
         ACL: 'public-read',
@@ -149,17 +99,10 @@ export default async function handler(req, res) {
       const result = await parallelUpload.done();
       const url = result.Location || `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uploadParams.Key}`;
       
-      // 返回結果
-      res.status(200).json({
-        status: 200,
-        url,
-        analysis: analysisResult,
-        predict: `${analysisResult.fertilizer}公斤/分地`
-      });
-
+      res.status(200).json({ status: 200, url, predict });
     } catch (error) {
-      console.error('Processing error:', error);
-      res.status(500).json({ error: 'Failed to process image' });
+      console.error('S3 upload error:', error);
+      res.status(500).json({ error: 'Failed to upload image to S3' });
     }
   });
 }
