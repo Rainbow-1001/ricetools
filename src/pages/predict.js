@@ -5,6 +5,7 @@ const Predict = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [moistureValue, setMoistureValue] = useState(null);
   const [recommendationText, setRecommendationText] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // 處理圖片上傳並產生預覽圖
   const handleImageUpload = (event) => {
@@ -22,17 +23,10 @@ const Predict = () => {
     }
   };
 
-  // 預測按鈕事件，這裡可以呼叫 API 或執行相應邏輯
-//   const handlePredict = async () => {
-//     // 在這裡你可以加入調用後端 API 的程式碼
-//     // 目前僅以假資料作示範
-//     setMoistureValue('25%');
-//     setRecommendationText('建議開始收割');
-//   };
-
   const handlePredict = async () => {
     if (!selectedFile) return;
-  
+    
+    setIsAnalyzing(true);
     const formData = new FormData();
     formData.append('image', selectedFile);
   
@@ -44,19 +38,18 @@ const Predict = () => {
       const data = await res.json();
   
       if (res.ok) {
-        // 假設 API 回傳的 key 為 moistureContent
         setMoistureValue(data.predict);
-        // 可以根據 moistureContent 值來動態調整推薦文字
         setRecommendationText('建議開始收割');
       } else {
         console.error('API error:', data.error);
       }
     } catch (error) {
       console.error('Error calling API:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
   
-
   return (
     <div className="container mx-auto max-w-md p-4">
       <div className="bg-white shadow-md rounded-lg p-4">
@@ -106,11 +99,15 @@ const Predict = () => {
             </label>
             <button
               id="predictButton"
-              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-              disabled={!selectedFile}
+              className={`font-bold py-2 px-4 rounded transition-colors ${
+                isAnalyzing || !selectedFile 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
+              disabled={isAnalyzing || !selectedFile}
               onClick={handlePredict}
             >
-              預測含水率
+              {isAnalyzing ? '分析中...' : '預測含水率'}
             </button>
           </div>
         </div>
@@ -119,7 +116,7 @@ const Predict = () => {
           <div id="predictionResult" className="mt-4 bg-gray-50 p-4 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">預測結果</h3>
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold" id="moistureValue">
+              <span className="text-2xl font-bold text-black" id="moistureValue">
                 {moistureValue}
               </span>
               <span id="recommendationText" className="text-sm">
