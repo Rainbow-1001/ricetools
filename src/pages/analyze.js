@@ -131,11 +131,11 @@ const LeafAnalysis = () => {
 
         {analysisResult && (
           <div className="mt-4 bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-3">分析結果</h3>
+            <h3 className="text-lg font-semibold mb-3 text-black">分析結果</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">葉色等級：</span>
-                <span className="font-bold text-lg">
+                <span className="font-bold text-lg text-black">
                   {analysisResult.colorLevel}
                 </span>
               </div>
