@@ -47,7 +47,7 @@ const LEAF_COLOR_STANDARDS = [
   {
     level: 5,
     rgb: [90, 130, 20], // 更深綠
-    fertilizer: 0.0,
+    fertilizer: 0.5,
     description: "葉色深綠，建議追施氮肥0.5公斤/分地"
   },
   {
