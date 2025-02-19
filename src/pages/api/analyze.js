@@ -29,32 +29,32 @@ const LEAF_COLOR_STANDARDS = [
   {
     level: 2,
     rgb: [160, 175, 35], // 淺綠
-    fertilizer: 5.0,
-    description: "葉色偏淺，建議追施氮肥5.0公斤/分地"
+    fertilizer: 4.5,
+    description: "葉色偏淺，建議追施氮肥4.5公斤/分地"
   },
   {
     level: 3,
     rgb: [140, 160, 30], // 綠
-    fertilizer: 4.0,
-    description: "葉色稍淺，建議追施氮肥4.0公斤/分地"
+    fertilizer: 3.0,
+    description: "葉色稍淺，建議追施氮肥3.0公斤/分地"
   },
   {
     level: 4,
     rgb: [115, 145, 25], // 深綠
-    fertilizer: 3.0,
-    description: "葉色正常，建議追施氮肥3.0公斤/分地"
+    fertilizer: 1.50,
+    description: "葉色正常，建議追施氮肥1.50公斤/分地"
   },
   {
     level: 5,
     rgb: [90, 130, 20], // 更深綠
-    fertilizer: 2.0,
-    description: "葉色深綠，建議追施氮肥2.0公斤/分地"
+    fertilizer: 0.0,
+    description: "葉色深綠，建議追施氮肥0.5公斤/分地"
   },
   {
     level: 6,
     rgb: [65, 115, 15], // 最深綠
-    fertilizer: 1.0,
-    description: "葉色很深，建議追施氮肥1.0公斤/分地"
+    fertilizer: -1.5,
+    description: "葉色很深，不須施用氮肥"
   }
 ];
 
